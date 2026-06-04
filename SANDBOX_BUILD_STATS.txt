@@ -1,8 +1,8 @@
 Ü-Sprache — sandbox build & test verification
 =============================================
 
-Source: git HEAD d575748 (branch claude/codebase-review-1eIZv)
-Compiler self-report: "Ü-Sprache version 0.10:d575748... , llvm version 17.0.6"
+Source commit: d575748352f145d26147362345ad1a5e997bbb5f
+Compiler self-report: "Ü-Sprache version 0.10:d575748352f145d26147362345ad1a5e997bbb5f , llvm version 17.0.6"
 Host: 4 cores, 15 GiB RAM, Ubuntu 24.04, clang 18 host toolchain
 LLVM: 17.0.6 official binary release (project-pinned version)
 
@@ -21,7 +21,9 @@ CMake configure             : 3 s
 Build compiler0 + C++ tests : 258 s
 Bootstrap compiler1 + tools : 46 s
 Per-file Ü compile (-O2)    : ~260 ms (compiler0 and compiler1 comparable)
-Total active build          : ~5 min
+Compiler build + bootstrap  : ~5 min  (258 s + 46 s; compile/link only,
+                                       excludes LLVM download/extract/cmake)
+All phases incl. LLVM fetch : ~7m42s  (26 + 129 + 3 + 258 + 46 s)
 
 Results
 -------
