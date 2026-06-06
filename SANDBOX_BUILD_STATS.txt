@@ -1,0 +1,63 @@
+Ü-Sprache — sandbox build & test verification
+=============================================
+
+Source commit: d575748352f145d26147362345ad1a5e997bbb5f
+Compiler self-report: "Ü-Sprache version 0.10:d575748352f145d26147362345ad1a5e997bbb5f , llvm version 17.0.6"
+Host: 4 cores, 15 GiB RAM, Ubuntu 24.04, clang 18 host toolchain
+LLVM: 17.0.6 official binary release (project-pinned version)
+
+Build configuration
+-------------------
+cmake -G Ninja -DCMAKE_BUILD_TYPE=Release -DLLVM_LIB_DIR=<llvm17>/lib
+      -DU_BUILD_COMPILER1=YES   (self-hosted compiler)
+      -DU_BUILD_DOCS=NO -DU_BUILD_PY_TESTS=NO -DU_BUILD_BUILD_SYSTEM_TESTS=NO
+Extra deps installed for the LLVM package: libzstd-dev, libxml2-dev
+
+Wall-clock timing (4 cores)
+---------------------------
+Download LLVM 17.0.6 (+deps) : 26 s   (952 MB)
+Extract LLVM (-> ~4 GB)      : 129 s
+CMake configure             : 3 s
+Build compiler0 + C++ tests : 258 s
+Bootstrap compiler1 + tools : 46 s
+Per-file Ü compile (-O2)    : ~260 ms (compiler0 and compiler1 comparable)
+Compiler build + bootstrap  : ~5 min  (258 s + 46 s; compile/link only,
+                                       excludes LLVM download/extract/cmake)
+All phases incl. LLVM fetch : ~7m42s  (26 + 129 + 3 + 258 + 46 s)
+
+Results
+-------
+C++ compiler unit tests : 1492 passed / 0 failed
+Standard library tests  : 95 / 98 passed
+  3 failures are sandbox-environment artifacts, NOT language/compiler bugs:
+    - tcp_test, udp_socket_test : networking is sandboxed (no real sockets)
+    - filesystem_test           : container runs as root, which bypasses file
+                                  permissions, so the test's negative assertion
+                                  ("must not open a read-only file for writing")
+                                  cannot hold.
+Self-hosting bootstrap  : OK  (compiler0 [C++] compiled compiler1 [written in Ü])
+
+End-to-end execution
+--------------------
+A small Ü program was compiled with BOTH compiler0 and compiler1, linked
+(-no-pie) against libustlib.a + pthread, and executed. Both binaries:
+  exit 0, byte-identical output:
+    Hello from Ü-Sprache, compiled & run in the sandbox!
+    fib(20) = 6765
+
+Artifacts produced
+------------------
+build_dir total           : 421 MB, 201 object files
+compiler0/Compiler        : 102 MB  (C++ compiler)
+compiler1/Compiler1       : 102 MB  (self-hosted compiler)
+compiler0/Tests           : 7.4 MB  (C++ test launcher)
+interpreter/Interpreter   : 27 MB
+cpp_header_converter/...  : 111 MB
+LLVM backend targets available: x86, x86-64, aarch64, riscv32/64, wasm32/64,
+  arm/thumb, mips, ppc, loongarch, nvptx, amdgcn, bpf, and ~30 total.
+
+Conclusion
+----------
+Genuine, working, self-hosting compiler. Builds cleanly against stock LLVM 17,
+passes ~1587 of its own tests; the only failures are networking/root quirks of
+this sandbox, not defects in the language or toolchain.
